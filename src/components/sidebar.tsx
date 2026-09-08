@@ -27,7 +27,7 @@ export const NAV_ITEMS = [
   { label: 'Início', icon: LayoutDashboard, href: '/' },
   { label: 'Vendas', icon: ShoppingCart, href: '/vendas' },
   { label: 'Pedidos', icon: ShoppingBag, href: '/pedidos' },
-  { label: 'Clientes', icon: Users, href: '#' },
+  { label: 'Clientes', icon: Users, href: '/clientes' },
   { label: 'Produtos', icon: Package, href: '#' },
   { label: 'Estoque', icon: Layers, href: '#' },
   { label: 'Produção', icon: Flame, href: '#' },
