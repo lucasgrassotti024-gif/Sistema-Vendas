@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Veneza Brownies Paleta Institucional (Tema Claro) */
+  --bg-page: #f8f6f0;            /* Bege nobre suave */
+  --bg-surface: #ffffff;         /* Superfície clara */
+  --bg-card: #ffffff;            /* Cards limpos */
+  --bg-subtle: #f1ede4;          /* Elementos secundários bege */
+  --border-color: #e5dfd3;       /* Bordas elegantes */
+  
+  --text-primary: #2a221b;       /* Marrom café escuro para leitura */
+  --text-secondary: #63574d;     /* Marrom médio neutro */
+  --text-muted: #8c7f74;         /* Neutro suave */
+
+  --brand-green: #235347;        /* Verde clássico da marca */
+  --brand-green-hover: #1c4238;  /* Verde mais escuro */
+  --brand-green-subtle: #e9f1ee; /* Verde ultra claro */
+
+  --brand-blue: #2c4a6f;         /* Azul refinado */
+  --brand-blue-subtle: #edf3f9;
+
+  --brand-gold: #c29b38;         /* Dourado em pequenos acentos */
+  --brand-gold-subtle: #faf5e8;
+
+  --brand-brown: #4a2e18;        /* Marrom brownie tradicional */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+.dark {
+  /* Veneza Brownies Paleta Institucional (Tema Escuro) */
+  --bg-page: #151311;            /* Fundo escuro quente e aveludado */
+  --bg-surface: #1e1b18;         /* Superfície escura */
+  --bg-card: #23201c;            /* Cards com contraste elegante */
+  --bg-subtle: #2c2824;          /* Subsuperfícies e hovers */
+  --border-color: #38322c;       /* Bordas sutis */
+  
+  --text-primary: #f5f0eb;       /* Bege creme claro */
+  --text-secondary: #c4b9ae;     /* Neutro claro */
+  --text-muted: #8a7f75;         /* Suave para metadados */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --brand-green: #377d6c;
+  --brand-green-hover: #459682;
+  --brand-green-subtle: #192723;
+
+  --brand-blue: #446d9b;
+  --brand-blue-subtle: #1a2430;
+
+  --brand-gold: #d4ac4a;
+  --brand-gold-subtle: #2c2415;
+
+  --brand-brown: #754f30;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+/* Utilitários semânticos rápidos */
+.bg-page { background-color: var(--bg-page); }
+.bg-surface { background-color: var(--bg-surface); }
+.bg-card-custom { background-color: var(--bg-card); }
+.bg-subtle { background-color: var(--bg-subtle); }
+.border-custom { border-color: var(--border-color); }
+.text-primary-custom { color: var(--text-primary); }
+.text-secondary-custom { color: var(--text-secondary); }
+.text-muted-custom { color: var(--text-muted); }
