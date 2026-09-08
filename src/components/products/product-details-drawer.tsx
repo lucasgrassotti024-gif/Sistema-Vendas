@@ -4,27 +4,51 @@ import React from 'react';
 import { ProductData } from '@/types/products';
 import {
   X,
-  Package,
   DollarSign,
-  TrendingUp,
   Layers,
   AlertTriangle,
   Clock,
   CheckCircle2,
+  Edit,
+  Power,
+  Info,
 } from 'lucide-react';
 
 interface ProductDetailsDrawerProps {
   product: ProductData | null;
   onClose: () => void;
+  onEdit: (product: ProductData) => void;
+  onToggleStatus: (productId: string) => void;
 }
 
-export function ProductDetailsDrawer({ product, onClose }: ProductDetailsDrawerProps) {
+export function ProductDetailsDrawer({
+  product,
+  onClose,
+  onEdit,
+  onToggleStatus,
+}: ProductDetailsDrawerProps) {
   if (!product) return null;
 
   const formatCurrency = (val: number) =>
     val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-  const isLowStock = product.currentStock <= product.minStock;
+  const isLowStock = product.status === 'active' && product.currentStock <= product.minStock;
+
+  const getMovementBadge = (type: string) => {
+    switch (type) {
+      case 'entrada':
+        return { label: 'Entrada', style: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' };
+      case 'saida':
+        return { label: 'Saída', style: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300' };
+      case 'venda':
+        return { label: 'Venda', style: 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300' };
+      case 'devolucao':
+        return { label: 'Devolução', style: 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300' };
+      case 'ajuste':
+      default:
+        return { label: 'Ajuste', style: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' };
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
@@ -40,7 +64,7 @@ export function ProductDetailsDrawer({ product, onClose }: ProductDetailsDrawerP
         <div className="p-6 border-b border-[#e5dfd3] dark:border-[#38322c] flex items-center justify-between sticky top-0 bg-[#f8f6f0]/90 dark:bg-[#181614]/90 backdrop-blur-md z-10">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold text-[#2a221b] dark:text-[#f5f0eb] truncate max-w-[320px]">
+              <h3 className="text-lg font-bold text-[#2a221b] dark:text-[#f5f0eb] truncate max-w-[280px]">
                 {product.name}
               </h3>
               <span
@@ -67,14 +91,42 @@ export function ProductDetailsDrawer({ product, onClose }: ProductDetailsDrawerP
 
         {/* Content */}
         <div className="p-6 space-y-6 flex-1 text-xs">
-          {/* Descrição */}
-          <div className="p-4 rounded-xl bg-[#ffffff] dark:bg-[#1e1b18] border border-[#e5dfd3] dark:border-[#38322c] space-y-1">
+          {/* Quick Actions Bar */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onEdit(product)}
+              className="flex-1 py-2 px-3 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-white dark:bg-[#1e1b18] hover:bg-stone-100 dark:hover:bg-[#25211d] text-[#2a221b] dark:text-[#f5f0eb] font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+            >
+              <Edit className="w-3.5 h-3.5 text-[#2c4a6f]" />
+              <span>Editar Produto</span>
+            </button>
+            <button
+              onClick={() => onToggleStatus(product.id)}
+              className={`py-2 px-3 rounded-xl border font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs ${
+                product.status === 'active'
+                  ? 'border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 hover:bg-rose-100'
+                  : 'border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+              }`}
+            >
+              <Power className="w-3.5 h-3.5" />
+              <span>{product.status === 'active' ? 'Inativar' : 'Ativar'}</span>
+            </button>
+          </div>
+
+          {/* Descrição & Observações */}
+          <div className="p-4 rounded-xl bg-[#ffffff] dark:bg-[#1e1b18] border border-[#e5dfd3] dark:border-[#38322c] space-y-2">
             <span className="text-[10px] font-semibold uppercase text-[#8c7f74] dark:text-[#8a7f75]">
               Descrição do Produto
             </span>
             <p className="text-xs text-[#2a221b] dark:text-[#f5f0eb]">
-              {product.description}
+              {product.description || 'Nenhuma descrição detalhada informada.'}
             </p>
+            {product.notes && (
+              <div className="pt-2 border-t border-[#e5dfd3]/60 dark:border-[#38322c]/60 flex items-start gap-1.5 text-[11px] text-[#8c7f74]">
+                <Info className="w-3.5 h-3.5 shrink-0 text-[#c29b38] mt-0.5" />
+                <span>{product.notes}</span>
+              </div>
+            )}
           </div>
 
           {/* Composição Comercial: Preço de Venda vs. Custo vs. Margem */}
@@ -121,7 +173,7 @@ export function ProductDetailsDrawer({ product, onClose }: ProductDetailsDrawerP
           <div className="space-y-3">
             <h4 className="text-xs font-bold tracking-wide uppercase text-[#8c7f74] dark:text-[#8a7f75] flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-[#4a2e18]" />
-              <span>Posição de Estoque</span>
+              <span>Posição de Estoque Persistente</span>
             </h4>
             <div className="p-4 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-[#ffffff] dark:bg-[#1e1b18] space-y-3">
               <div className="flex justify-between items-center">
@@ -145,7 +197,7 @@ export function ProductDetailsDrawer({ product, onClose }: ProductDetailsDrawerP
                   <div>
                     <p className="font-bold">Atenção: Estoque Baixo</p>
                     <p className="text-[11px] opacity-90">
-                      O saldo atual está abaixo do estoque mínimo. Agende uma nova fornada na produção.
+                      O saldo atual ({product.currentStock} {product.unit}) está no limite ou abaixo do mínimo ({product.minStock} {product.unit}).
                     </p>
                   </div>
                 </div>
@@ -158,37 +210,47 @@ export function ProductDetailsDrawer({ product, onClose }: ProductDetailsDrawerP
             </div>
           </div>
 
-          {/* Histórico Recente de Movimentações */}
+          {/* Histórico Real de Movimentações (Ledger) */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold tracking-wide uppercase text-[#8c7f74] dark:text-[#8a7f75] flex items-center gap-1.5">
               <Clock className="w-4 h-4 text-[#c29b38]" />
-              <span>Movimentações Recentes do Produto</span>
+              <span>Histórico de Movimentações ({product.history.length})</span>
             </h4>
             {product.history.length > 0 ? (
               <div className="rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-[#ffffff] dark:bg-[#1e1b18] divide-y divide-[#e5dfd3]/60 dark:divide-[#38322c]/60 overflow-hidden">
-                {product.history.map((h) => (
-                  <div key={h.id} className="p-3 flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-[#2a221b] dark:text-[#f5f0eb]">
-                        {h.description}
-                      </p>
-                      <p className="text-[10px] text-[#8c7f74]">{h.date}</p>
+                {product.history.map((h) => {
+                  const badge = getMovementBadge(h.type);
+                  return (
+                    <div key={h.id} className="p-3 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`px-1.5 py-0.5 rounded-sm text-[9px] font-bold uppercase ${badge.style}`}>
+                            {badge.label}
+                          </span>
+                          <p className="font-semibold text-[#2a221b] dark:text-[#f5f0eb]">
+                            {h.description}
+                          </p>
+                        </div>
+                        <p className="text-[10px] text-[#8c7f74]">{h.date}</p>
+                      </div>
+                      <span
+                        className={`font-bold text-sm ${
+                          h.quantityChange > 0
+                            ? 'text-[#235347] dark:text-emerald-400'
+                            : h.quantityChange < 0
+                            ? 'text-rose-700 dark:text-rose-400'
+                            : 'text-stone-600 dark:text-stone-300'
+                        }`}
+                      >
+                        {h.quantityChange > 0 ? `+${h.quantityChange}` : h.quantityChange} {product.unit}
+                      </span>
                     </div>
-                    <span
-                      className={`font-bold ${
-                        h.quantityChange > 0
-                          ? 'text-[#235347] dark:text-emerald-400'
-                          : 'text-rose-700 dark:text-rose-400'
-                      }`}
-                    >
-                      {h.quantityChange > 0 ? `+${h.quantityChange}` : h.quantityChange} {product.unit}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="p-4 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-[#ffffff] dark:bg-[#1e1b18] text-center text-[#8c7f74]">
-                Sem movimentações recentes registradas.
+                Sem movimentações registradas neste produto.
               </div>
             )}
           </div>

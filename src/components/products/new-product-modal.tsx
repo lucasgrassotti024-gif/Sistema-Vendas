@@ -1,16 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, PackagePlus, DollarSign, Layers, Tag } from 'lucide-react';
-import { ProductData } from '@/types/products';
+import React, { useState, useEffect } from 'react';
+import { X, PackagePlus, DollarSign, Layers, Tag, Wand2, Edit, AlertCircle } from 'lucide-react';
+import { ProductData, calculateCommercialMetrics } from '@/types/products';
+import { productService, CreateProductInput, UpdateProductInput } from '@/services/product-service';
 
-interface NewProductModalProps {
+interface ProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreated: (newProduct: ProductData) => void;
+  onSuccess: (product: ProductData) => void;
+  productToEdit?: ProductData | null;
 }
 
-export function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalProps) {
+export function NewProductModal({ isOpen, onClose, onSuccess, productToEdit }: ProductModalProps) {
+  const isEditing = !!productToEdit;
+
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
@@ -18,47 +22,130 @@ export function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalP
   const [unit, setUnit] = useState('un');
   const [salePrice, setSalePrice] = useState<number>(10);
   const [currentCost, setCurrentCost] = useState<number>(4);
+  const [initialStock, setInitialStock] = useState<number>(0);
   const [minStock, setMinStock] = useState<number>(15);
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [notes, setNotes] = useState('');
 
-  const [errors, setErrors] = useState<{ name?: string; code?: string; salePrice?: string }>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (productToEdit) {
+      setName(productToEdit.name);
+      setCode(productToEdit.code);
+      setDescription(productToEdit.description || '');
+      setCategory(productToEdit.category);
+      setUnit(productToEdit.unit);
+      setSalePrice(productToEdit.salePrice);
+      setCurrentCost(productToEdit.currentCost);
+      setMinStock(productToEdit.minStock);
+      setStatus(productToEdit.status);
+      setNotes(productToEdit.notes || '');
+      setInitialStock(productToEdit.currentStock);
+    } else {
+      setName('');
+      setCode('');
+      setDescription('');
+      setCategory('Brownies Tradicionais');
+      setUnit('un');
+      setSalePrice(10);
+      setCurrentCost(4);
+      setInitialStock(0);
+      setMinStock(15);
+      setStatus('active');
+      setNotes('');
+    }
+    setErrors({});
+    setGeneralError(null);
+  }, [productToEdit, isOpen]);
 
   if (!isOpen) return null;
 
-  const marginPercent =
-    salePrice > 0 ? ((salePrice - currentCost) / salePrice) * 100 : 0;
+  // Usa regra comercial única
+  const commercial = calculateCommercialMetrics(salePrice, currentCost);
+
+  const handleGenerateSku = () => {
+    if (!name.trim()) {
+      setErrors((prev) => ({ ...prev, name: 'Preencha o nome do produto para gerar o SKU' }));
+      return;
+    }
+    const suggested = productService.generateSkuSuggestion(name, category);
+    setCode(suggested);
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.code;
+      return next;
+    });
+  };
 
   const validate = () => {
-    const errs: { name?: string; code?: string; salePrice?: string } = {};
+    const errs: { [key: string]: string } = {};
     if (!name.trim()) errs.name = 'Nome do produto é obrigatório.';
-    if (!code.trim()) errs.code = 'Código/SKU é obrigatório.';
+    if (!code.trim()) errs.code = 'Código / SKU é obrigatório.';
     if (salePrice <= 0) errs.salePrice = 'Preço de venda deve ser maior que zero.';
+    if (currentCost < 0) errs.currentCost = 'Custo não pode ser negativo.';
+    if (!isEditing && initialStock < 0) errs.initialStock = 'Estoque inicial não pode ser negativo.';
+    if (minStock < 0) errs.minStock = 'Estoque mínimo não pode ser negativo.';
+
+    // Validação de SKU duplicado
+    if (code.trim()) {
+      const available = productService.isSkuAvailable(code.trim(), productToEdit?.id);
+      if (!available) {
+        errs.code = `O SKU "${code.trim().toUpperCase()}" já está em uso por outro produto.`;
+      }
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const handleSave = () => {
+    setGeneralError(null);
     if (!validate()) return;
 
-    const newProd: ProductData = {
-      id: `prod-${Date.now()}`,
-      code: code.trim().toUpperCase(),
-      name: name.trim(),
-      description: description.trim(),
-      category,
-      unit,
-      salePrice,
-      currentCost,
-      marginPercent: Math.max(0, marginPercent),
-      currentStock: 0, // Inicia zerado até primeira produção/entrada
-      minStock,
-      status,
-      history: [],
-      priceHistory: [],
-    };
-
-    onCreated(newProd);
-    onClose();
+    if (isEditing && productToEdit) {
+      const updateData: UpdateProductInput = {
+        name: name.trim(),
+        code: code.trim().toUpperCase(),
+        description: description.trim(),
+        category,
+        unit,
+        salePrice,
+        currentCost,
+        minStock,
+        status,
+        notes: notes.trim(),
+      };
+      const res = productService.update(productToEdit.id, updateData);
+      if (!res.success || !res.product) {
+        setGeneralError(res.error || 'Erro ao salvar alterações no produto.');
+        return;
+      }
+      onSuccess(res.product);
+      onClose();
+    } else {
+      const createData: CreateProductInput = {
+        name: name.trim(),
+        code: code.trim().toUpperCase(),
+        description: description.trim(),
+        category,
+        unit,
+        salePrice,
+        currentCost,
+        initialStock: Math.max(0, initialStock || 0),
+        minStock: Math.max(0, minStock || 0),
+        status,
+        notes: notes.trim(),
+      };
+      const res = productService.create(createData);
+      if (!res.success || !res.product) {
+        setGeneralError(res.error || 'Erro ao cadastrar produto.');
+        return;
+      }
+      onSuccess(res.product);
+      onClose();
+    }
   };
 
   return (
@@ -74,15 +161,23 @@ export function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalP
         {/* Header */}
         <div className="p-5 border-b border-[#e5dfd3] dark:border-[#38322c] flex items-center justify-between bg-[#f8f6f0] dark:bg-[#181614]">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-[#e9f1ee] dark:bg-[#192723] text-[#235347] dark:text-[#377d6c]">
-              <PackagePlus className="w-5 h-5" />
+            <div
+              className={`p-2 rounded-xl ${
+                isEditing
+                  ? 'bg-[#edf3f9] dark:bg-[#1a2430] text-[#2c4a6f] dark:text-[#6ba1d6]'
+                  : 'bg-[#e9f1ee] dark:bg-[#192723] text-[#235347] dark:text-[#377d6c]'
+              }`}
+            >
+              {isEditing ? <Edit className="w-5 h-5" /> : <PackagePlus className="w-5 h-5" />}
             </div>
             <div>
               <h3 className="text-base font-bold text-[#2a221b] dark:text-[#f5f0eb]">
-                Novo Produto
+                {isEditing ? 'Editar Produto' : 'Novo Produto'}
               </h3>
               <p className="text-xs text-[#8c7f74] dark:text-[#8a7f75]">
-                Cadastre itens no catálogo de venda da Veneza
+                {isEditing
+                  ? 'Atualize os dados comerciais e de catálogo do produto'
+                  : 'Cadastre itens no catálogo de venda da Veneza'}
               </p>
             </div>
           </div>
@@ -93,6 +188,14 @@ export function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalP
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* General Error Banner */}
+        {generalError && (
+          <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 flex items-center gap-2 text-rose-700 dark:text-rose-300 text-xs">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{generalError}</span>
+          </div>
+        )}
 
         {/* Form Body */}
         <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
@@ -106,22 +209,39 @@ export function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalP
                 type="text"
                 placeholder="Ex: Brownie Ninho com Nutella"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
+                }}
                 className="w-full px-3 py-2 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-white dark:bg-[#1e1b18] text-[#2a221b] dark:text-[#f5f0eb] focus:ring-2 focus:ring-[#235347]/40 outline-hidden"
               />
               {errors.name && <p className="text-rose-600 text-[11px]">{errors.name}</p>}
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-[#2a221b] dark:text-[#f5f0eb]">
-                Código / SKU <span className="text-rose-600">*</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-[#2a221b] dark:text-[#f5f0eb]">
+                  Código / SKU <span className="text-rose-600">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGenerateSku}
+                  className="text-[10px] text-[#235347] dark:text-emerald-400 font-semibold hover:underline flex items-center gap-0.5"
+                  title="Sugerir SKU a partir do nome"
+                >
+                  <Wand2 className="w-3 h-3" />
+                  <span>Sugerir</span>
+                </button>
+              </div>
               <input
                 type="text"
                 placeholder="BRW-NINHO"
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-white dark:bg-[#1e1b18] text-[#2a221b] dark:text-[#f5f0eb] font-mono focus:ring-2 focus:ring-[#235347]/40 outline-hidden"
+                onChange={(e) => {
+                  setCode(e.target.value.toUpperCase());
+                  if (errors.code) setErrors((prev) => ({ ...prev, code: '' }));
+                }}
+                className="w-full px-3 py-2 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-white dark:bg-[#1e1b18] text-[#2a221b] dark:text-[#f5f0eb] font-mono uppercase focus:ring-2 focus:ring-[#235347]/40 outline-hidden"
               />
               {errors.code && <p className="text-rose-600 text-[11px]">{errors.code}</p>}
             </div>
@@ -143,6 +263,7 @@ export function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalP
                 <option value="Brownies Especiais">Brownies Especiais</option>
                 <option value="Kits & Caixas">Kits & Caixas</option>
                 <option value="Encomendas & Festas">Encomendas & Festas</option>
+                <option value="Geral">Geral</option>
               </select>
             </div>
 
@@ -163,16 +284,17 @@ export function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalP
             </div>
           </div>
 
-          {/* Precificação Comercial: Preço de Venda, Custo Manual e Margem Calculada */}
+          {/* Precificação Comercial: Preço de Venda, Custo e Margem Centralizada */}
           <div className="p-4 rounded-xl bg-white dark:bg-[#1e1b18] border border-[#e5dfd3] dark:border-[#38322c] space-y-3">
             <span className="text-[10px] font-bold uppercase tracking-wide text-[#8c7f74] dark:text-[#8a7f75] block">
-              Composição Financeira (V1)
+              Composição Financeira
             </span>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="font-bold text-[#235347] dark:text-emerald-400">
-                  Preço de Venda (R$) <span className="text-rose-600">*</span>
+                <label className="font-bold text-[#235347] dark:text-emerald-400 flex items-center gap-1">
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span>Preço de Venda (R$) *</span>
                 </label>
                 <input
                   type="number"
@@ -187,7 +309,7 @@ export function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalP
 
               <div className="space-y-1">
                 <label className="font-bold text-[#4a2e18] dark:text-[#d4a373]">
-                  Custo Manual Estimado (R$)
+                  Custo Atual (R$)
                 </label>
                 <input
                   type="number"
@@ -197,24 +319,52 @@ export function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalP
                   onChange={(e) => setCurrentCost(Math.max(0, parseFloat(e.target.value) || 0))}
                   className="w-full px-3 py-2 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-[#f8f6f0] dark:bg-[#23201c] font-bold text-[#2a221b] dark:text-[#f5f0eb] outline-hidden"
                 />
+                {errors.currentCost && <p className="text-rose-600 text-[11px]">{errors.currentCost}</p>}
               </div>
             </div>
 
             {/* Margem Bruta Pré-visualizada */}
             <div className="pt-2 border-t border-[#e5dfd3]/60 dark:border-[#38322c]/60 flex items-center justify-between">
-              <span className="text-[#8c7f74] dark:text-[#8a7f75]">Margem Bruta Resultante:</span>
+              <span className="text-[#8c7f74] dark:text-[#8a7f75]">Margem e Lucro Unitário:</span>
               <strong className="text-[#2c4a6f] dark:text-[#6ba1d6] text-sm">
-                {marginPercent.toFixed(1)}% (R$ {(salePrice - currentCost).toFixed(2)} por {unit})
+                {commercial.marginPercent}% (R$ {commercial.unitProfit.toFixed(2)} por {unit})
               </strong>
             </div>
           </div>
 
-          {/* Estoque Mínimo e Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Estoque e Situação */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {!isEditing ? (
+              <div className="space-y-1">
+                <label className="font-bold text-[#2a221b] dark:text-[#f5f0eb] flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-[#235347]" />
+                  <span>Estoque Inicial</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={initialStock}
+                  onChange={(e) => setInitialStock(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-full px-3 py-2 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-white dark:bg-[#1e1b18] text-[#2a221b] dark:text-[#f5f0eb] outline-hidden font-bold"
+                />
+                {errors.initialStock && <p className="text-rose-600 text-[11px]">{errors.initialStock}</p>}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <label className="font-bold text-[#8c7f74] dark:text-[#8a7f75]">
+                  Estoque Atual
+                </label>
+                <div className="px-3 py-2 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-stone-100 dark:bg-stone-900 font-bold text-[#2a221b] dark:text-[#f5f0eb]">
+                  {productToEdit.currentStock} {unit}
+                </div>
+                <p className="text-[10px] text-[#8c7f74]">Estoque físico é gerenciado via ledger</p>
+              </div>
+            )}
+
             <div className="space-y-1">
               <label className="font-bold text-[#2a221b] dark:text-[#f5f0eb] flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-[#c29b38]" />
-                <span>Estoque Mínimo de Alerta</span>
+                <span>Estoque Mínimo</span>
               </label>
               <input
                 type="number"
@@ -223,11 +373,12 @@ export function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalP
                 onChange={(e) => setMinStock(Math.max(0, parseInt(e.target.value) || 0))}
                 className="w-full px-3 py-2 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-white dark:bg-[#1e1b18] text-[#2a221b] dark:text-[#f5f0eb] outline-hidden"
               />
+              {errors.minStock && <p className="text-rose-600 text-[11px]">{errors.minStock}</p>}
             </div>
 
             <div className="space-y-1">
               <label className="font-bold text-[#2a221b] dark:text-[#f5f0eb]">
-                Situação do Catálogo
+                Situação
               </label>
               <select
                 value={status}
@@ -253,6 +404,20 @@ export function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalP
               className="w-full px-3 py-2 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-white dark:bg-[#1e1b18] text-[#2a221b] dark:text-[#f5f0eb] outline-hidden"
             />
           </div>
+
+          {/* Observações */}
+          <div className="space-y-1">
+            <label className="font-bold text-[#8c7f74] dark:text-[#8a7f75]">
+              Observações Internas (Opcional)
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: Embalagem sazonal, lote especial..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-white dark:bg-[#1e1b18] text-[#2a221b] dark:text-[#f5f0eb] outline-hidden"
+            />
+          </div>
         </div>
 
         {/* Footer Actions */}
@@ -269,7 +434,7 @@ export function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalP
             onClick={handleSave}
             className="px-5 py-2 rounded-xl bg-[#235347] hover:bg-[#1c4238] dark:bg-[#377d6c] dark:hover:bg-[#459682] text-white font-bold shadow-xs transition-colors"
           >
-            Cadastrar Produto
+            {isEditing ? 'Salvar Alterações' : 'Cadastrar Produto'}
           </button>
         </div>
       </div>

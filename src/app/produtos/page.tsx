@@ -1,30 +1,51 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 import { ProductsSummaryCards } from '@/components/products/products-summary-cards';
 import { ProductsTable } from '@/components/products/products-table';
 import { ProductDetailsDrawer } from '@/components/products/product-details-drawer';
 import { NewProductModal } from '@/components/products/new-product-modal';
-import {
-  MOCK_PRODUCTS_LIST,
-  MOCK_PRODUCTS_SUMMARY,
-  MOCK_PRODUCT_CATEGORIES,
-  ProductData,
-} from '@/types/products';
+import { ProductData, PRODUCT_CATEGORIES } from '@/types/products';
+import { productService } from '@/services/product-service';
 import { Search } from 'lucide-react';
 
 export default function ProductsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [products, setProducts] = useState<ProductData[]>(MOCK_PRODUCTS_LIST);
+  const [products, setProducts] = useState<ProductData[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null);
-  const [isNewProductOpen, setIsNewProductOpen] = useState(false);
+  const [productToEdit, setProductToEdit] = useState<ProductData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('Todos');
+
+  // Carrega produtos persistidos
+  const loadProducts = useCallback(() => {
+    const list = productService.getAll();
+    setProducts(list);
+    setIsLoaded(true);
+
+    // Se o drawer estiver aberto com um produto, sincroniza os dados dele
+    if (selectedProduct) {
+      const refreshed = list.find((p) => p.id === selectedProduct.id) || null;
+      setSelectedProduct(refreshed);
+    }
+  }, [selectedProduct]);
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  // Métricas calculadas dinamicamente
+  const summaryMetrics = useMemo(() => {
+    return productService.calculateSummary(products);
+  }, [products]);
 
   // Filtragem combinada
   const filteredProducts = useMemo(() => {
@@ -41,8 +62,31 @@ export default function ProductsPage() {
     });
   }, [products, searchTerm, statusFilter, categoryFilter]);
 
-  const handleCreatedProduct = (newProduct: ProductData) => {
-    setProducts([newProduct, ...products]);
+  const handleOpenCreateModal = () => {
+    setProductToEdit(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (product: ProductData) => {
+    setProductToEdit(product);
+    setIsModalOpen(true);
+  };
+
+  const handleModalSuccess = (savedProduct: ProductData) => {
+    loadProducts();
+    if (selectedProduct && selectedProduct.id === savedProduct.id) {
+      setSelectedProduct(savedProduct);
+    }
+  };
+
+  const handleToggleStatus = (productId: string) => {
+    const res = productService.toggleStatus(productId);
+    if (res.success && res.product) {
+      loadProducts();
+      if (selectedProduct && selectedProduct.id === productId) {
+        setSelectedProduct(res.product);
+      }
+    }
   };
 
   return (
@@ -63,14 +107,14 @@ export default function ProductsPage() {
           onOpenMobileMenu={() => setMobileMenuOpen(true)}
           actionButton={{
             label: 'Novo Produto',
-            onClick: () => setIsNewProductOpen(true),
+            onClick: handleOpenCreateModal,
           }}
         />
 
         {/* Page Body */}
         <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
-          {/* Top Summary Cards */}
-          <ProductsSummaryCards metrics={MOCK_PRODUCTS_SUMMARY} />
+          {/* Top Summary Cards - Dinâmicos e Persistentes */}
+          <ProductsSummaryCards metrics={summaryMetrics} />
 
           {/* Filter Toolbar */}
           <div className="p-4 rounded-2xl border bg-[#ffffff] dark:bg-[#1e1b18] border-[#e5dfd3] dark:border-[#38322c] shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
@@ -98,7 +142,7 @@ export default function ProductsPage() {
                   onChange={(e) => setCategoryFilter(e.target.value)}
                   className="px-3 py-1.5 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-[#f8f6f0] dark:bg-[#23201c] text-[#2a221b] dark:text-[#f5f0eb] outline-hidden font-medium"
                 >
-                  {MOCK_PRODUCT_CATEGORIES.map((cat) => (
+                  {PRODUCT_CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>
                       {cat}
                     </option>
@@ -136,13 +180,22 @@ export default function ProductsPage() {
       <ProductDetailsDrawer
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
+        onEdit={(prod) => {
+          setSelectedProduct(null);
+          handleOpenEditModal(prod);
+        }}
+        onToggleStatus={handleToggleStatus}
       />
 
-      {/* New Product Modal */}
+      {/* New / Edit Product Modal */}
       <NewProductModal
-        isOpen={isNewProductOpen}
-        onClose={() => setIsNewProductOpen(false)}
-        onCreated={handleCreatedProduct}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setProductToEdit(null);
+        }}
+        onSuccess={handleModalSuccess}
+        productToEdit={productToEdit}
       />
     </div>
   );
