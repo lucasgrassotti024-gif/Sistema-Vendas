@@ -29,7 +29,7 @@ export const NAV_ITEMS = [
   { label: 'Pedidos', icon: ShoppingBag, href: '/pedidos' },
   { label: 'Clientes', icon: Users, href: '/clientes' },
   { label: 'Produtos', icon: Package, href: '/produtos' },
-  { label: 'Estoque', icon: Layers, href: '#' },
+  { label: 'Estoque', icon: Layers, href: '/estoque' },
   { label: 'Produção', icon: Flame, href: '#' },
   { label: 'Compras', icon: Truck, href: '#' },
   { label: 'Financeiro', icon: DollarSign, href: '#' },
