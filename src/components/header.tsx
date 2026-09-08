@@ -1,14 +1,25 @@
 'use client';
 
 import React from 'react';
-import { Menu, Search, Bell } from 'lucide-react';
+import { Menu, Search, Bell, Plus } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
 
 interface HeaderProps {
+  title?: string;
+  description?: string;
   onOpenMobileMenu: () => void;
+  actionButton?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
-export function Header({ onOpenMobileMenu }: HeaderProps) {
+export function Header({
+  title = 'Visão Geral',
+  description = 'Acompanhe os principais indicadores do negócio.',
+  onOpenMobileMenu,
+  actionButton,
+}: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 h-18 px-4 sm:px-8 border-b flex items-center justify-between gap-4 backdrop-blur-md bg-[#f8f6f0]/85 dark:bg-[#151311]/85 border-[#e5dfd3] dark:border-[#38322c]">
       {/* Page Title & Mobile Toggle */}
@@ -22,25 +33,25 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
         </button>
         <div>
           <h2 className="text-lg font-bold tracking-tight text-[#2a221b] dark:text-[#f5f0eb]">
-            Visão Geral
+            {title}
           </h2>
           <p className="hidden sm:block text-xs text-[#8c7f74] dark:text-[#8a7f75]">
-            Acompanhe os principais indicadores do negócio.
+            {description}
           </p>
         </div>
       </div>
 
-      {/* Right Controls: Search, Notifications, Theme, User */}
+      {/* Right Controls: Action Button, Notifications, Theme, User */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* Search Bar */}
-        <div className="relative hidden md:flex items-center">
-          <Search className="w-4 h-4 absolute left-3 text-[#8c7f74]" />
-          <input
-            type="text"
-            placeholder="Buscar vendas, clientes, lotes..."
-            className="w-64 pl-9 pr-4 py-1.5 text-xs rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-[#ffffff] dark:bg-[#1e1b18] text-[#2a221b] dark:text-[#f5f0eb] placeholder-[#8c7f74] focus:outline-hidden focus:ring-2 focus:ring-[#235347]/40"
-          />
-        </div>
+        {actionButton && (
+          <button
+            onClick={actionButton.onClick}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#235347] hover:bg-[#1c4238] dark:bg-[#377d6c] dark:hover:bg-[#459682] text-white text-xs font-semibold shadow-xs transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{actionButton.label}</span>
+          </button>
+        )}
 
         {/* Notifications */}
         <button

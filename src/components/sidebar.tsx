@@ -15,27 +15,29 @@ import {
   Settings,
   X,
 } from 'lucide-react';
+import Link from 'next/link';
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  activePath?: string;
 }
 
 export const NAV_ITEMS = [
-  { label: 'Início', icon: LayoutDashboard, active: true, href: '#' },
-  { label: 'Vendas', icon: ShoppingCart, active: false, href: '#' },
-  { label: 'Pedidos', icon: ShoppingBag, active: false, href: '#' },
-  { label: 'Clientes', icon: Users, active: false, href: '#' },
-  { label: 'Produtos', icon: Package, active: false, href: '#' },
-  { label: 'Estoque', icon: Layers, active: false, href: '#' },
-  { label: 'Produção', icon: Flame, active: false, href: '#' },
-  { label: 'Compras', icon: Truck, active: false, href: '#' },
-  { label: 'Financeiro', icon: DollarSign, active: false, href: '#' },
-  { label: 'Relatórios', icon: BarChart3, active: false, href: '#' },
-  { label: 'Configurações', icon: Settings, active: false, href: '#' },
+  { label: 'Início', icon: LayoutDashboard, href: '/' },
+  { label: 'Vendas', icon: ShoppingCart, href: '/vendas' },
+  { label: 'Pedidos', icon: ShoppingBag, href: '#' },
+  { label: 'Clientes', icon: Users, href: '#' },
+  { label: 'Produtos', icon: Package, href: '#' },
+  { label: 'Estoque', icon: Layers, href: '#' },
+  { label: 'Produção', icon: Flame, href: '#' },
+  { label: 'Compras', icon: Truck, href: '#' },
+  { label: 'Financeiro', icon: DollarSign, href: '#' },
+  { label: 'Relatórios', icon: BarChart3, href: '#' },
+  { label: 'Configurações', icon: Settings, href: '#' },
 ];
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, activePath = '/' }: SidebarProps) {
   return (
     <>
       {/* Mobile Backdrop */}
@@ -54,7 +56,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         {/* Brand Header */}
         <div className="h-18 px-6 flex items-center justify-between border-b border-[#e5dfd3] dark:border-[#38322c]">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#235347] flex items-center justify-center text-[#faf5e8] font-bold text-lg shadow-sm">
               V
             </div>
@@ -66,7 +68,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 Gestão Integrada
               </p>
             </div>
-          </div>
+          </Link>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 lg:hidden"
@@ -79,28 +81,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
+            const isActive = activePath === item.href;
             return (
-              <a
+              <Link
                 key={item.label}
                 href={item.href}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
-                  item.active
+                  isActive
                     ? 'bg-[#235347] text-white shadow-xs dark:bg-[#2e6b5c]'
                     : 'text-[#63574d] dark:text-[#c4b9ae] hover:bg-[#ece6d8] dark:hover:bg-[#23201c] hover:text-[#2a221b] dark:hover:text-[#f5f0eb]'
                 }`}
               >
                 <Icon
                   className={`w-4 h-4 transition-colors ${
-                    item.active
+                    isActive
                       ? 'text-[#d4ac4a]'
                       : 'text-[#8c7f74] dark:text-[#8a7f75] group-hover:text-[#235347] dark:group-hover:text-[#d4ac4a]'
                   }`}
                 />
                 <span>{item.label}</span>
-                {item.active && (
+                {isActive && (
                   <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#d4ac4a]" />
                 )}
-              </a>
+              </Link>
             );
           })}
         </nav>
