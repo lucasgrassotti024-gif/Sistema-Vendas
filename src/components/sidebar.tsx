@@ -32,7 +32,7 @@ export const NAV_ITEMS = [
   { label: 'Estoque', icon: Layers, href: '/estoque' },
   { label: 'Produção', icon: Flame, href: '/producao' },
   { label: 'Compras', icon: Truck, href: '/compras' },
-  { label: 'Financeiro', icon: DollarSign, href: '#' },
+  { label: 'Financeiro', icon: DollarSign, href: '/financeiro' },
   { label: 'Relatórios', icon: BarChart3, href: '#' },
   { label: 'Configurações', icon: Settings, href: '#' },
 ];
