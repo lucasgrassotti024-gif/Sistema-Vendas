@@ -31,7 +31,7 @@ export const NAV_ITEMS = [
   { label: 'Produtos', icon: Package, href: '/produtos' },
   { label: 'Estoque', icon: Layers, href: '/estoque' },
   { label: 'Produção', icon: Flame, href: '/producao' },
-  { label: 'Compras', icon: Truck, href: '#' },
+  { label: 'Compras', icon: Truck, href: '/compras' },
   { label: 'Financeiro', icon: DollarSign, href: '#' },
   { label: 'Relatórios', icon: BarChart3, href: '#' },
   { label: 'Configurações', icon: Settings, href: '#' },
