@@ -1,22 +1,27 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 import { MetricCard } from '@/components/metric-card';
 import { SalesTrendChart, FinancialOverviewCard } from '@/components/charts-section';
 import { RecentActivity } from '@/components/recent-activity';
-import {
-  MOCK_METRICS,
-  MOCK_SALES_TREND,
-  MOCK_FINANCIAL,
-  MOCK_ACTIVITIES,
-} from '@/types/dashboard';
+import { dashboardService, DashboardRealData } from '@/services/dashboard-service';
 import { Calendar, Filter, Download } from 'lucide-react';
 
 export default function DashboardPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
+  const [dashboardData, setDashboardData] = useState<DashboardRealData | null>(null);
+
+  const loadData = () => {
+    const data = dashboardService.getDashboardData(selectedPeriod);
+    setDashboardData(data);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [selectedPeriod]);
 
   return (
     <div className="min-h-screen flex bg-[#f8f6f0] dark:bg-[#151311] text-[#2a221b] dark:text-[#f5f0eb] transition-colors">
@@ -24,6 +29,7 @@ export default function DashboardPage() {
       <Sidebar
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
+        activePath="/"
       />
 
       {/* Main Content Area */}
@@ -40,7 +46,7 @@ export default function DashboardPage() {
                 Painel Operacional
               </h2>
               <p className="text-xs text-[#8c7f74] dark:text-[#8a7f75]">
-                Status da produção, vendas e fluxo de caixa da Veneza Brownies.
+                Status da produção, vendas e fluxo de caixa da Veneza Brownies em tempo real.
               </p>
             </div>
 
@@ -56,7 +62,7 @@ export default function DashboardPage() {
                   <button
                     key={tab.value}
                     onClick={() => setSelectedPeriod(tab.value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       selectedPeriod === tab.value
                         ? 'bg-[#235347] text-white shadow-xs dark:bg-[#377d6c]'
                         : 'text-[#63574d] dark:text-[#c4b9ae] hover:text-[#2a221b] dark:hover:text-[#f5f0eb]'
@@ -79,7 +85,8 @@ export default function DashboardPage() {
               {/* Export Button */}
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-[#ffffff] dark:bg-[#1e1b18] text-xs font-semibold text-[#63574d] dark:text-[#c4b9ae] hover:bg-[#f1ede4] dark:hover:bg-[#2c2824] transition-colors"
+                onClick={() => alert('Relatório sintético do painel operacional preparado.')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#e5dfd3] dark:border-[#38322c] bg-[#ffffff] dark:bg-[#1e1b18] text-xs font-semibold text-[#63574d] dark:text-[#c4b9ae] hover:bg-[#f1ede4] dark:hover:bg-[#2c2824] transition-colors cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5 text-[#8c7f74]" />
                 <span className="hidden sm:inline">Exportar</span>
@@ -88,22 +95,28 @@ export default function DashboardPage() {
           </div>
 
           {/* Key Metric Indicators Grid */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {MOCK_METRICS.map((metric) => (
-              <MetricCard key={metric.title} metric={metric} />
-            ))}
-          </section>
+          {dashboardData && (
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+              {dashboardData.metrics.map((metric) => (
+                <MetricCard key={metric.title} metric={metric} />
+              ))}
+            </section>
+          )}
 
           {/* Visual Charts & Financial Health Section */}
-          <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SalesTrendChart data={MOCK_SALES_TREND} />
-            <FinancialOverviewCard data={MOCK_FINANCIAL} />
-          </section>
+          {dashboardData && (
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <SalesTrendChart data={dashboardData.salesTrend} />
+              <FinancialOverviewCard data={dashboardData.financialOverview} />
+            </section>
+          )}
 
           {/* Recent Operations & Activity Stream */}
-          <section>
-            <RecentActivity activities={MOCK_ACTIVITIES} />
-          </section>
+          {dashboardData && (
+            <section>
+              <RecentActivity activities={dashboardData.recentActivities} />
+            </section>
+          )}
         </main>
       </div>
     </div>
