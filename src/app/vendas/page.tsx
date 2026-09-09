@@ -14,11 +14,12 @@ import {
   SaleStatus,
   SalesSummaryMetrics,
 } from '@/types/sales';
+import { salesService } from '@/services/sales-service';
 import { Search, Filter, Calendar } from 'lucide-react';
 
 export default function SalesPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [sales, setSales] = useState<SaleData[]>(MOCK_SALES_LIST);
+  const [sales, setSales] = useState<SaleData[]>([]);
   const [selectedSale, setSelectedSale] = useState<SaleData | null>(null);
   const [isNewSaleOpen, setIsNewSaleOpen] = useState(false);
 
@@ -26,6 +27,19 @@ export default function SalesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [periodFilter, setPeriodFilter] = useState<string>('all');
+
+  const loadSales = () => {
+    const list = salesService.getAll();
+    setSales(list);
+    if (selectedSale) {
+      const refreshed = list.find((s) => s.id === selectedSale.id) || null;
+      setSelectedSale(refreshed);
+    }
+  };
+
+  React.useEffect(() => {
+    loadSales();
+  }, []);
 
   // Filtragem combinada
   const filteredSales = useMemo(() => {
@@ -50,7 +64,8 @@ export default function SalesPage() {
   }, [sales, searchTerm, statusFilter, periodFilter]);
 
   const handleCreatedSale = (newSale: SaleData) => {
-    setSales([newSale, ...sales]);
+    salesService.create(newSale);
+    loadSales();
   };
 
   // Métricas calculadas dinamicamente sobre as vendas carregadas

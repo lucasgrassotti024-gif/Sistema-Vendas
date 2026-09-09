@@ -3,8 +3,8 @@ import { inventoryService } from './inventory-service';
 import { productionService } from './production-service';
 import { purchaseService } from './purchase-service';
 import { financialService } from './financial-service';
-import { MOCK_SALES_LIST } from '@/types/sales';
-import { MOCK_ORDERS_LIST } from '@/types/orders';
+import { salesService } from './sales-service';
+import { ordersService } from './orders-service';
 
 export type ReportPeriod = 'today' | 'week' | 'month' | 'all';
 
@@ -50,8 +50,8 @@ class ReportsService {
   public getGlobalMetrics(period: ReportPeriod): ReportGlobalMetrics {
     const finSummary = financialService.calculateSummary();
 
-    // Vendas ativas
-    const activeSales = MOCK_SALES_LIST.filter((s) => s.status !== 'cancelled');
+    // Vendas ativas reais persistidas
+    const activeSales = salesService.getAll().filter((s) => s.status !== 'cancelled');
     const grossBilling = activeSales.reduce((acc, curr) => acc + curr.totalAmount, 0);
 
     return {
@@ -69,13 +69,14 @@ class ReportsService {
    */
   public getProductPerformance(): ProductPerformanceReport[] {
     const products = productService.getAll();
+    const sales = salesService.getAll();
 
     return products.map((prod) => {
-      // Calcula saídas das vendas mockadas
+      // Calcula saídas das vendas persistidas
       let unitsSold = 0;
       let grossRevenue = 0;
 
-      MOCK_SALES_LIST.forEach((s) => {
+      sales.forEach((s) => {
         if (s.status !== 'cancelled') {
           s.items.forEach((it) => {
             if (it.productId === prod.id || it.productName.toLowerCase().includes(prod.name.toLowerCase().substring(0, 10))) {
@@ -111,8 +112,9 @@ class ReportsService {
    */
   public getClientSales(): ClientSalesReport[] {
     const map: Record<string, { count: number; total: number }> = {};
+    const sales = salesService.getAll();
 
-    MOCK_SALES_LIST.forEach((s) => {
+    sales.forEach((s) => {
       if (s.status !== 'cancelled') {
         if (!map[s.customerName]) {
           map[s.customerName] = { count: 0, total: 0 };
@@ -159,11 +161,12 @@ class ReportsService {
    * Métricas de Pedidos
    */
   public getOrdersMetrics() {
-    const totalOrders = MOCK_ORDERS_LIST.length;
-    const delivered = MOCK_ORDERS_LIST.filter((o) => o.status === 'delivered').length;
-    const pending = MOCK_ORDERS_LIST.filter((o) => o.status === 'confirmed' || o.status === 'new').length;
-    const inProduction = MOCK_ORDERS_LIST.filter((o) => o.status === 'in_production').length;
-    const cancelled = MOCK_ORDERS_LIST.filter((o) => o.status === 'cancelled').length;
+    const orders = ordersService.getAll();
+    const totalOrders = orders.length;
+    const delivered = orders.filter((o) => o.status === 'delivered').length;
+    const pending = orders.filter((o) => o.status === 'confirmed' || o.status === 'new').length;
+    const inProduction = orders.filter((o) => o.status === 'in_production').length;
+    const cancelled = orders.filter((o) => o.status === 'cancelled').length;
 
     return {
       totalOrders,

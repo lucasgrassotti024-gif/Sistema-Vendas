@@ -81,6 +81,8 @@ class SettingsService {
         'veneza_fin_receivables_v1',
         'veneza_fin_payables_v1',
         'veneza_fin_advances_v1',
+        'veneza_sales_v1',
+        'veneza_orders_v1',
       ];
 
       keysToClear.forEach((k) => localStorage.removeItem(k));

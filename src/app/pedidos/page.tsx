@@ -14,11 +14,12 @@ import {
   OrderStatus,
   OrdersSummaryMetrics,
 } from '@/types/orders';
+import { ordersService } from '@/services/orders-service';
 import { Search } from 'lucide-react';
 
 export default function OrdersPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [orders, setOrders] = useState<OrderData[]>(MOCK_ORDERS_LIST);
+  const [orders, setOrders] = useState<OrderData[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null);
   const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
 
@@ -26,6 +27,19 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [periodFilter, setPeriodFilter] = useState<string>('all');
+
+  const loadOrders = () => {
+    const list = ordersService.getAll();
+    setOrders(list);
+    if (selectedOrder) {
+      const refreshed = list.find((o) => o.id === selectedOrder.id) || null;
+      setSelectedOrder(refreshed);
+    }
+  };
+
+  React.useEffect(() => {
+    loadOrders();
+  }, []);
 
   // Filtragem combinada
   const filteredOrders = useMemo(() => {
@@ -50,7 +64,8 @@ export default function OrdersPage() {
   }, [orders, searchTerm, statusFilter, periodFilter]);
 
   const handleCreatedOrder = (newOrder: OrderData) => {
-    setOrders([newOrder, ...orders]);
+    ordersService.create(newOrder);
+    loadOrders();
   };
 
   // Métricas calculadas dinamicamente sobre a lista de pedidos
