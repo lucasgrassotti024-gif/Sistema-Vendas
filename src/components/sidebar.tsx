@@ -34,7 +34,7 @@ export const NAV_ITEMS = [
   { label: 'Compras', icon: Truck, href: '/compras' },
   { label: 'Financeiro', icon: DollarSign, href: '/financeiro' },
   { label: 'Relatórios', icon: BarChart3, href: '/relatorios' },
-  { label: 'Configurações', icon: Settings, href: '#' },
+  { label: 'Configurações', icon: Settings, href: '/configuracoes' },
 ];
 
 export function Sidebar({ isOpen, onClose, activePath = '/' }: SidebarProps) {
