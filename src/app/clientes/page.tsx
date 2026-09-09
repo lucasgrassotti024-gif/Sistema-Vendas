@@ -11,6 +11,7 @@ import {
   MOCK_CUSTOMERS_LIST,
   MOCK_CUSTOMERS_SUMMARY,
   CustomerData,
+  CustomersSummaryMetrics,
 } from '@/types/customers';
 import { Search } from 'lucide-react';
 
@@ -43,6 +44,16 @@ export default function CustomersPage() {
     setCustomers([newCustomer, ...customers]);
   };
 
+  // Métricas calculadas dinamicamente
+  const dynamicCustomerMetrics: CustomersSummaryMetrics = useMemo(() => {
+    return {
+      totalCustomers: customers.length,
+      newCustomers: customers.filter((c) => c.status === 'active').length,
+      customersWithOrders: customers.filter((c) => c.totalPurchasedAmount > 0).length,
+      customersWithReceivables: customers.filter((c) => c.totalReceivableAmount > 0).length,
+    };
+  }, [customers]);
+
   return (
     <div className="min-h-screen flex bg-[#f8f6f0] dark:bg-[#151311] text-[#2a221b] dark:text-[#f5f0eb] transition-colors">
       {/* Sidebar Reutilizável com rota ativa destacada */}
@@ -67,8 +78,8 @@ export default function CustomersPage() {
 
         {/* Page Body */}
         <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
-          {/* Top Summary Cards */}
-          <CustomersSummaryCards metrics={MOCK_CUSTOMERS_SUMMARY} />
+          {/* Top Summary Cards dinâmicos */}
+          <CustomersSummaryCards metrics={dynamicCustomerMetrics} />
 
           {/* Filter Toolbar */}
           <div className="p-4 rounded-2xl border bg-[#ffffff] dark:bg-[#1e1b18] border-[#e5dfd3] dark:border-[#38322c] shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">

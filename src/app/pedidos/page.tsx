@@ -12,6 +12,7 @@ import {
   MOCK_ORDERS_SUMMARY,
   OrderData,
   OrderStatus,
+  OrdersSummaryMetrics,
 } from '@/types/orders';
 import { Search } from 'lucide-react';
 
@@ -52,6 +53,17 @@ export default function OrdersPage() {
     setOrders([newOrder, ...orders]);
   };
 
+  // Métricas calculadas dinamicamente sobre a lista de pedidos
+  const dynamicSummaryMetrics: OrdersSummaryMetrics = useMemo(() => {
+    const todayStr = '2026-09-08';
+    return {
+      ordersTodayCount: orders.filter((o) => o.orderDate === todayStr || o.deliveryDate === todayStr).length,
+      ordersPendingCount: orders.filter((o) => o.status === 'new' || o.status === 'confirmed').length,
+      ordersInProductionCount: orders.filter((o) => o.status === 'in_production').length,
+      ordersToDeliverCount: orders.filter((o) => o.status === 'ready').length,
+    };
+  }, [orders]);
+
   return (
     <div className="min-h-screen flex bg-[#f8f6f0] dark:bg-[#151311] text-[#2a221b] dark:text-[#f5f0eb] transition-colors">
       {/* Sidebar Reutilizável com rota ativa destacada */}
@@ -76,8 +88,8 @@ export default function OrdersPage() {
 
         {/* Page Body */}
         <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
-          {/* Top Summary Cards */}
-          <OrdersSummaryCards metrics={MOCK_ORDERS_SUMMARY} />
+          {/* Top Summary Cards dinâmicos */}
+          <OrdersSummaryCards metrics={dynamicSummaryMetrics} />
 
           {/* Filter Toolbar */}
           <div className="p-4 rounded-2xl border bg-[#ffffff] dark:bg-[#1e1b18] border-[#e5dfd3] dark:border-[#38322c] shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">

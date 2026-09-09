@@ -12,6 +12,7 @@ import {
   MOCK_SALES_SUMMARY,
   SaleData,
   SaleStatus,
+  SalesSummaryMetrics,
 } from '@/types/sales';
 import { Search, Filter, Calendar } from 'lucide-react';
 
@@ -52,6 +53,21 @@ export default function SalesPage() {
     setSales([newSale, ...sales]);
   };
 
+  // Métricas calculadas dinamicamente sobre as vendas carregadas
+  const dynamicSalesMetrics: SalesSummaryMetrics = useMemo(() => {
+    const todayStr = '2026-09-08';
+    const activeSales = sales.filter((s) => s.status !== 'cancelled');
+    const totalSold = activeSales.reduce((acc, curr) => acc + curr.totalAmount, 0);
+    const totalReceivable = activeSales.reduce((acc, curr) => acc + curr.remainingBalance, 0);
+
+    return {
+      salesTodayCount: sales.filter((s) => s.date === todayStr).length,
+      salesPeriodCount: sales.length,
+      totalSoldAmount: totalSold,
+      totalReceivableAmount: totalReceivable,
+    };
+  }, [sales]);
+
   return (
     <div className="min-h-screen flex bg-[#f8f6f0] dark:bg-[#151311] text-[#2a221b] dark:text-[#f5f0eb] transition-colors">
       {/* Sidebar Reutilizável com rota ativa destacada */}
@@ -76,8 +92,8 @@ export default function SalesPage() {
 
         {/* Page Body */}
         <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
-          {/* Top Summary Cards */}
-          <SalesSummaryCards metrics={MOCK_SALES_SUMMARY} />
+          {/* Top Summary Cards dinâmicos */}
+          <SalesSummaryCards metrics={dynamicSalesMetrics} />
 
           {/* Filter Toolbar */}
           <div className="p-4 rounded-2xl border bg-[#ffffff] dark:bg-[#1e1b18] border-[#e5dfd3] dark:border-[#38322c] shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
